@@ -1,53 +1,18 @@
-# 🖥️ Windows 10 in Docker Container
+# Windows 10 in Docker Container
 
-![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
-![KVM](https://img.shields.io/badge/KVM-FF6600?style=for-the-badge&logo=linux&logoColor=white)
-![Windows](https://img.shields.io/badge/Windows-10-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+Run Windows 10 with QEMU/KVM and access it through noVNC in a browser.
 
-A Docker container solution for running Windows 10 with KVM acceleration, providing remote access via VNC and RDP.
+## Requirements
 
-## 🚀 Getting Started
+- Linux host with Docker
+- KVM enabled at `/dev/kvm`
+- Windows 10 ISO support through the configured Docker volume
+- Modern web browser
 
-### Prerequisites
-- Docker installed
-- KVM enabled system
-- Administrative privileges
+## Start
 
-## 📦 Features
-
-- ⚡ Run Windows 10 inside a Docker container
-- 🔒 Secure with isolated environment
-- 🖥️ Access via noVNC (web browser) or RDP
-- 🚀 Fast virtualization using KVM (requires host support)
-- 💾 Persistent storage using Docker volumes
-
----
-
-## 🛠️ Requirements
-
-- **Linux host** with:
-  - KVM enabled (`/dev/kvm` should exist)
-  - Docker installed
-- **Windows 10 ISO** (for initial installation)
-- Modern web browser (for noVNC access)
-
----
-
-## 🚀 Installation
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/hopingboyz/windows10vm
-cd windows10vm
-```
-
-### 2. Build the image
 ```bash
 docker build -t windows10-vm .
-```
-
-### 3. Start the VM
-```bash
 docker run -d \
   --name windowsvm \
   --device /dev/kvm \
@@ -55,15 +20,22 @@ docker run -d \
   -v win_data:/data \
   -v win_iso:/iso \
   windows10-vm
+sleep 5
+./vm-status.sh
 ```
 
-### 4. Restart the VM
+Open `http://localhost:6080/vnc.html`, or use the forwarded port 6080 URL in VS Code. Only browser port 6080 is exposed; VNC port 5900 stays internal.
+
+## Restart and Stop
+
 ```bash
 docker restart windowsvm
+sleep 5
+./vm-status.sh
 ```
 
-If the container does not exist or Docker reports that the name is already in
-use, recreate it:
+To recreate the container after rebuilding the image:
+
 ```bash
 docker rm -f windowsvm || true
 docker run -d \
@@ -73,36 +45,26 @@ docker run -d \
   -v win_data:/data \
   -v win_iso:/iso \
   windows10-vm
+sleep 5
+./vm-status.sh
 ```
 
-### 5. Stop the VM
+Stop and remove it with:
+
 ```bash
 docker rm -f windowsvm
 ```
 
-### 6. Open the browser
-```text
-http://localhost:6080/vnc.html
-```
+Check logs with:
 
-If you are in VS Code or another remote environment, use the forwarded port URL for port 6080 from the Ports panel instead of a stale localhost link.
-
-### 7. Check logs if needed
 ```bash
-docker ps
 docker logs -f windowsvm
 ```
 
-### 8. Check whether the main VM server is on
-From the project directory, run:
-```bash
-chmod +x vm-status.sh
-./vm-status.sh
-```
+`./vm-status.sh` reports `ON` only when both QEMU and its internal VNC server are available. Run it a few seconds after starting because QEMU needs time to open port 5900.
 
-It reports `ON` only when the Windows VM and its VNC server are both running.
+## GitHub Actions
 
-The container must show both QEMU and websockify in its logs. If QEMU stops,
-the container exits instead of leaving a noVNC page running without a VM.
+The `Build Windows VM image` workflow runs on pushes to `main` and can be run manually from the repository's **Actions** tab. It builds the Docker image and uploads `windows10-vm.tar.gz` as a downloadable artifact.
 
-This project currently exposes only the browser port needed for noVNC access: 6080.
+The GitHub-hosted runner exports the image but does not run the Windows VM. Run the image on a Linux host with stable KVM support.
